@@ -8,6 +8,7 @@ import com.rahgozin.appointment.application.service.DoctorService;
 import com.rahgozin.appointment.application.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,7 +36,7 @@ public class PatientController {
         }
     }
 
-    @RequestMapping(value = "/getAllDoctors", method = RequestMethod.GET)
+    @RequestMapping(value = "/getAllDoctors", method = RequestMethod.GET,produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<DoctorEntity>> getAll() throws Exception {
         try {
             return new ResponseEntity<>(doctorService.getAllDoctors(), HttpStatus.OK);

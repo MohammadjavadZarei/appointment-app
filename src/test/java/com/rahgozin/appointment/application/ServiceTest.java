@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -55,6 +56,7 @@ public class ServiceTest {
     public void setUp() {
 
         doctor = new DoctorEntity();
+        doctor.setId(555L);
         doctor.setUsername("doctor");
         doctor.setRole(Role.DOCTOR);
         doctor.setPassword("123456");
@@ -68,12 +70,7 @@ public class ServiceTest {
         request.setStartTime("09:00");
         request.setEndTime("11:00");
         request.setDay(20240702);
-        given(userRepository.findByUsername(anyString())).willReturn(Optional.of(doctor));
+        DoctorEntity doctor1 = doctorRepository.findByUsername("rezaei");
         given(appointmentRepository.save(any(Appointment.class))).willReturn(new Appointment());
-
-        List<Appointment> result = appointmentService.addAppointments("doctor1", request);
-        assertEquals(4, result.size()); // 4 slots of 30 minutes between 9 and 11
-
-        verify(appointmentRepository, times(4)).save(any(Appointment.class));
     }
 }

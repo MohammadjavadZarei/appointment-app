@@ -36,7 +36,9 @@ public class SecurityConfiguration {
             "swagger-ui/index.html",
             "doctor/register",
             "doctor/getAll",
-            "patient/register"};
+            "patient/register",
+            "patient/getAllDoctors",
+            "/patient/getAllDoctors"};
 
 
     @Bean

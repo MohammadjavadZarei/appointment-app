@@ -25,20 +25,26 @@ public class AuthenticationService {
 
 
     public LoginResponse authenticate(LoginRequest request){
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
-        var user = userRepository.findByUsername(request.getUsername()).orElseThrow();
-        var jwtToken = jwtService.generateJwtToken(user);
-        var refreshToken = jwtService.generateRefreshToken(user);
-        log.info("USER WITH USER NAME = {}", user.getUsername() + " LOGGED IN SUCCESSFULLY");
-        return LoginResponse.builder()
-                .jwtToken(jwtToken)
-                .refreshToken(refreshToken)
-                .build();
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
+            var user = userRepository.findByUsername(request.getUsername()).orElseThrow();
+            var jwtToken = jwtService.generateJwtToken(user);
+            var refreshToken = jwtService.generateRefreshToken(user);
+            log.info("USER WITH USER NAME = {}", user.getUsername() + " LOGGED IN SUCCESSFULLY");
+            return LoginResponse.builder()
+                    .jwtToken(jwtToken)
+                    .refreshToken(refreshToken)
+                    .build();
+        }catch (Exception e){
+            log.error("ERRORRRRRRRR");
+            throw e;
+        }
+
     }
 
     public RefreshTokenResponse newJwtToken(RefreshTokenRequest request) throws Exception {

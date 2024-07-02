@@ -8,5 +8,5 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface DoctorRepository extends JpaRepository<DoctorEntity, Long>{
-
+    DoctorEntity findByUsername(String username);
 }
