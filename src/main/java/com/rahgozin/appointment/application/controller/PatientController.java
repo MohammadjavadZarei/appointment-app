@@ -1,14 +1,16 @@
 package com.rahgozin.appointment.application.controller;
 
+import com.rahgozin.appointment.application.entity.Appointment;
 import com.rahgozin.appointment.application.entity.DoctorEntity;
 import com.rahgozin.appointment.application.entity.Patient;
-import com.rahgozin.appointment.application.model.DoctorRegisterRequest;
-import com.rahgozin.appointment.application.model.PatientRegisterRequest;
+import com.rahgozin.appointment.application.model.*;
 import com.rahgozin.appointment.application.service.DoctorService;
 import com.rahgozin.appointment.application.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,10 +43,29 @@ public class PatientController {
             throw e;
         }
     }
-    @RequestMapping(value = "/reserve", method = RequestMethod.POST)
-    public ResponseEntity<Patient> reserve(PatientRegisterRequest request) throws Exception {
+    @RequestMapping(value = "/getOpenAppointments", method = RequestMethod.GET)
+    public ResponseEntity<List<Appointment>> getAllOpenAppointments(GetDoctorAppointmentsRequest request) throws Exception {
         try {
-            return new ResponseEntity<>(patientService.add(request), HttpStatus.OK);
+            return new ResponseEntity<>(doctorService.getDoctorAppointments(request), HttpStatus.OK);
+        }catch (Exception e){
+            throw e;
+        }
+    }
+    @RequestMapping(value = "/reserve", method = RequestMethod.POST)
+    public ResponseEntity<ReservedAppointmentFactor> reserve(@RequestBody ReserveAppointmentRequest request) throws Exception {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            return new ResponseEntity<>(patientService.reserveAppointment(request, username), HttpStatus.OK);
+        }catch (Exception e){
+            throw e;
+        }
+    }
+
+    @RequestMapping(value = "/get", method = RequestMethod.POST)
+    public ResponseEntity<List<PatientAppointmentModel>> get() throws Exception {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            return new ResponseEntity<>(patientService.get(username), HttpStatus.OK);
         }catch (Exception e){
             throw e;
         }

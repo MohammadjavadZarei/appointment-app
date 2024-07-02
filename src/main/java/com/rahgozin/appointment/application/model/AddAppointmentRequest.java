@@ -17,4 +17,7 @@ public class AddAppointmentRequest {
 
     private Integer day;
 
+    public AddAppointmentRequest() {
+
+    }
 }

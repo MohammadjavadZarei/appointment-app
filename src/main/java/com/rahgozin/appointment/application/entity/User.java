@@ -24,14 +24,13 @@ import java.util.List;
         "accountNonExpired",
         "accountNonLocked",
         "credentialsNonExpired"})
+@Table(name = "user_account")
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     @JsonIgnore
-
     private String username;
     @JsonIgnore
 

@@ -8,10 +8,10 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@Getter
+@Setter
 public class DoctorEntity extends User{
 
     private String name;
@@ -20,7 +20,8 @@ public class DoctorEntity extends User{
 
     private String email;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "doctor")
+    @JsonBackReference
     private List<Appointment> appointments;
 
     private String field;

@@ -5,7 +5,10 @@ import com.rahgozin.appointment.application.entity.Appointment;
 import com.rahgozin.appointment.application.entity.AppointmentStatus;
 import com.rahgozin.appointment.application.entity.DoctorEntity;
 import com.rahgozin.appointment.application.entity.User;
+import com.rahgozin.appointment.application.exception.AppointmentException;
+import com.rahgozin.appointment.application.exception.ExceptionEnum;
 import com.rahgozin.appointment.application.model.AddAppointmentRequest;
+import com.rahgozin.appointment.application.model.DoctorAppointmentModel;
 import com.rahgozin.appointment.application.model.GetAppointmentsRequest;
 import com.rahgozin.appointment.application.repository.AppointmentRepository;
 import com.rahgozin.appointment.application.repository.UserRepository;
@@ -36,7 +39,7 @@ public class AppointmentServiceImp implements AppointmentService {
     }
 
     @Override
-    public List<Appointment> getAppointments(String username, GetAppointmentsRequest request) {
+    public List<DoctorAppointmentModel> getAppointments(String username, GetAppointmentsRequest request) {
         Integer date;
         if (request.getDate() == null)
             date = Dateutil.getActionDate(new Date());
@@ -48,7 +51,17 @@ public class AppointmentServiceImp implements AppointmentService {
             statuses = Arrays.stream(AppointmentStatus.values()).toList();
         else
             statuses = request.getStatuses();
-        return appointmentRepository.findAllByActionDateAndDoctorAndStatusIn(date, (DoctorEntity) doctor.get(), statuses);
+        List<Appointment> appointments =  appointmentRepository.findAllByActionDateAndDoctorAndStatusIn(date, (DoctorEntity) doctor.get(), statuses);
+        List<DoctorAppointmentModel> appointmentModels = new ArrayList<>();
+        for (Appointment appointment : appointments){
+            DoctorAppointmentModel appointmentModel = new DoctorAppointmentModel();
+            appointmentModel.setAppointment(appointment);
+            appointmentModel.setPatient(appointment.getPatient());
+            appointmentModels.add(appointmentModel);
+        }
+        return appointmentModels;
+
+
     }
 
 
@@ -57,6 +70,9 @@ public class AppointmentServiceImp implements AppointmentService {
         LocalTime start = LocalTime.parse(startTime, formatter);
 
         LocalTime end = LocalTime.parse(endTime, formatter);
+        if (end.isBefore(start)){
+            throw new AppointmentException(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME);
+        }
         List<Appointment> appointments = new ArrayList<>();
         while (start.plusMinutes(slotDurationInMinutes).isBefore(end) || start.plusMinutes(slotDurationInMinutes).equals(end)) {
             LocalTime slotEnd = start.plusMinutes(slotDurationInMinutes);

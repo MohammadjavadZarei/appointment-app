@@ -1,8 +1,12 @@
 package com.rahgozin.appointment.application.service;
 
+import com.rahgozin.appointment.application.entity.Appointment;
+import com.rahgozin.appointment.application.entity.AppointmentStatus;
 import com.rahgozin.appointment.application.entity.DoctorEntity;
 import com.rahgozin.appointment.application.entity.Role;
 import com.rahgozin.appointment.application.model.DoctorRegisterRequest;
+import com.rahgozin.appointment.application.model.GetDoctorAppointmentsRequest;
+import com.rahgozin.appointment.application.repository.AppointmentRepository;
 import com.rahgozin.appointment.application.repository.DoctorRepository;
 import com.rahgozin.appointment.application.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -10,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -18,6 +23,8 @@ public class DoctorServiceImp implements DoctorService {
     private final PasswordEncoder passwordEncoder;
 
     private final DoctorRepository doctorRepository;
+
+    private final AppointmentRepository appointmentRepository;
     @Override
     public DoctorEntity add(DoctorRegisterRequest request) {
         DoctorEntity user = new DoctorEntity();
@@ -40,4 +47,14 @@ public class DoctorServiceImp implements DoctorService {
     public List<DoctorEntity> getAllDoctors() {
         return doctorRepository.findAll();
     }
+
+    @Override
+    public List<Appointment> getDoctorAppointments(GetDoctorAppointmentsRequest request) {
+        Optional<DoctorEntity> doctor = doctorRepository.findById(request.getDoctorId());
+        if (doctor.isPresent())
+            return appointmentRepository.findAllByActionDateAndDoctorAndStatus(request.getDay(), doctor.get(), AppointmentStatus.EMPTY);
+        else return null;
+    }
+
+
 }
