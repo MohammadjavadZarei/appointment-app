@@ -29,12 +29,11 @@ public class AppointmentServiceImp implements AppointmentService {
     private final AppointmentRepository appointmentRepository;
 
     @Override
-    public List<Appointment> addAppointments(String username, AddAppointmentRequest request) {
+    public List<Appointment> addAppointments(String username, LocalTime startTime, LocalTime endTime, Integer day) {
         int slotDurationInMinutes = 30;
         Optional<User> doctor = userRepository.findByUsername(username);
-        List<Appointment> appointments =  generateAppointmentSlots((DoctorEntity) doctor.get(), request.getStartTime(), request.getEndTime(), slotDurationInMinutes, request.getDay());
-        for (Appointment appointment : appointments)
-            appointmentRepository.save(appointment);
+        List<Appointment> appointments =  generateAppointmentSlots((DoctorEntity) doctor.get(), startTime, endTime, slotDurationInMinutes, day);
+        appointmentRepository.saveAll(appointments);
         return appointments;
     }
 
@@ -65,27 +64,21 @@ public class AppointmentServiceImp implements AppointmentService {
     }
 
 
-    public static List<Appointment> generateAppointmentSlots(DoctorEntity doctor,String startTime, String endTime, int slotDurationInMinutes, Integer day) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-        LocalTime start = LocalTime.parse(startTime, formatter);
+    public static List<Appointment> generateAppointmentSlots(DoctorEntity doctor,LocalTime startTime, LocalTime endTime, int slotDurationInMinutes, Integer day) {
 
-        LocalTime end = LocalTime.parse(endTime, formatter);
-        if (end.isBefore(start)){
-            throw new AppointmentException(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME);
-        }
         List<Appointment> appointments = new ArrayList<>();
-        while (start.plusMinutes(slotDurationInMinutes).isBefore(end) || start.plusMinutes(slotDurationInMinutes).equals(end)) {
-            LocalTime slotEnd = start.plusMinutes(slotDurationInMinutes);
+        while (startTime.plusMinutes(slotDurationInMinutes).isBefore(endTime) || startTime.plusMinutes(slotDurationInMinutes).equals(endTime)) {
+            LocalTime slotEnd = startTime.plusMinutes(slotDurationInMinutes);
             Appointment appointment = Appointment.builder().
                     doctor(doctor).
                     date(new Date()).
                     status(AppointmentStatus.EMPTY).
-                    startTime(start).
+                    startTime(startTime).
                     endTime(slotEnd).
                     actionDate(day).
                     build();
             appointments.add(appointment);
-            start =slotEnd;
+            startTime =slotEnd;
         }
         return appointments;
     }

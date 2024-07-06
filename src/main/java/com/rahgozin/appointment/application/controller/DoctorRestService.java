@@ -1,6 +1,8 @@
 package com.rahgozin.appointment.application.controller;
 
 import com.rahgozin.appointment.application.entity.Appointment;
+import com.rahgozin.appointment.application.exception.AppointmentException;
+import com.rahgozin.appointment.application.exception.ExceptionEnum;
 import com.rahgozin.appointment.application.model.*;
 import com.rahgozin.appointment.application.service.AppointmentService;
 import com.rahgozin.appointment.application.service.DoctorService;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -38,9 +42,14 @@ public class DoctorRestService {
 
     @RequestMapping(value = "/addAppointment", method = RequestMethod.POST)
     public ResponseEntity<List<Appointment>> add(@RequestBody AddAppointmentRequest request) {
-
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        LocalTime start = LocalTime.parse(request.getStartTime(), formatter);
+        LocalTime end = LocalTime.parse(request.getEndTime(), formatter);
+        if (end.isBefore(start)){
+            throw new AppointmentException(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME);
+        }
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<Appointment> response = appointmentService.addAppointments(username, request);
+        List<Appointment> response = appointmentService.addAppointments(username, start, end, request.getDay());
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

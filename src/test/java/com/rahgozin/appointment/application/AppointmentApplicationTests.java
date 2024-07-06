@@ -6,6 +6,8 @@ import com.rahgozin.appointment.application.config.JwtAuthenticationFilter;
 import com.rahgozin.appointment.application.controller.DoctorRestService;
 import com.rahgozin.appointment.application.entity.DoctorEntity;
 import com.rahgozin.appointment.application.entity.Role;
+import com.rahgozin.appointment.application.exception.ErrorsModel;
+import com.rahgozin.appointment.application.exception.ExceptionEnum;
 import com.rahgozin.appointment.application.model.AddAppointmentRequest;
 import com.rahgozin.appointment.application.model.LoginRequest;
 import com.rahgozin.appointment.application.repository.AppointmentRepository;
@@ -63,7 +65,7 @@ class AppointmentApplicationTests {
 	@Autowired
 	private MockMvc mockMvc;
 
-	@InjectMocks
+	@Mock
 	private AppointmentService appointmentService;
 
 	@MockBean
@@ -94,7 +96,7 @@ class AppointmentApplicationTests {
 ////		}
 //		ObjectMapper objectMapper = new ObjectMapper();
 //		LoginRequest request = new LoginRequest();
-//		request.setUsername("rezaei");
+//		request.setUsername("zarei");
 //		request.setPassword("12345");
 //		MvcResult resultActions = mockMvc.perform(post("/v1/auth/login").content(objectMapper.writeValueAsString(request)).contentType(MediaType.APPLICATION_JSON)).andReturn();
 //		String token = String.valueOf(resultActions.getClass().getField("jwtToken"));
@@ -102,20 +104,24 @@ class AppointmentApplicationTests {
 //	}
 
 	@Test
+	@WithMockUser(username = "zarei", password = "12345")
 	void contextLoads() throws Exception {
 		try{
 			Long doctorId = 1L;
 			DoctorEntity mockDoctor = new DoctorEntity();
 			Mockito.when(doctorRepository.findById(doctorId)).thenReturn(Optional.of(mockDoctor));
-			AddAppointmentRequest request = new AddAppointmentRequest("07:00","06:00",20240702);
+			AddAppointmentRequest request = new AddAppointmentRequest("07:00","08:00",20240702);
 			ObjectMapper objectMapper = new ObjectMapper();
+			ErrorsModel errorsModel = new ErrorsModel();
+			errorsModel.setMessage(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME.name());
+			errorsModel.setCode(String.valueOf(400));
 			mockMvc.perform(post("/doctor/addAppointment").
 							content(objectMapper.writeValueAsString(request)).
 							contentType(MediaType.APPLICATION_JSON).
 							accept("application/json").
-							header("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyZXphZWkiLCJpYXQiOjE3MTk5NDE0MjUsImV4cCI6MTcxOTk0Mjg2NX0.KK8i6m3bjVPUVJ81CB0K9FAZDy96Ymd1f-YaY6trZww")).
+							header("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ6YXJlaSIsImlhdCI6MTcxOTk1MDUyNCwiZXhwIjoxNzE5OTUxOTY0fQ.wt5m-T2iPTV3nrvzzr7O8iC7atiAX5CCUptslg84-IU")).
 					andExpect(status().is4xxClientError()).
-					andExpect(content().string("START_TIME_SOONER_THAN_END_TIME"));}catch (Exception e){
+					andExpect(content().string(objectMapper.writeValueAsString(errorsModel)));}catch (Exception e){
 
 			e.printStackTrace();
 			System.out.println(e.getMessage());
