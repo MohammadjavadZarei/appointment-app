@@ -1,18 +1,18 @@
 spring:
   datasource:
-#    url: jdbc:mysql://localhost:3306/db
-    url: jdbc:h2:mem:testdb
+    url: jdbc:mysql://localhost:3306/db
+#    url: jdbc:h2:mem:testdb
     username: root
     password: rootpassword
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-    driver-class-name: org.h2.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
+#    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-#        dialect: org.hibernate.dialect.MySQL8Dialect
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.MySQL8Dialect
+#        dialect: org.hibernate.dialect.H2Dialect
     show-sql: true
   security:
     user:

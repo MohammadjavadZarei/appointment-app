@@ -9,7 +9,9 @@ import com.rahgozin.appointment.application.entity.Role;
 import com.rahgozin.appointment.application.exception.ErrorsModel;
 import com.rahgozin.appointment.application.exception.ExceptionEnum;
 import com.rahgozin.appointment.application.model.AddAppointmentRequest;
+import com.rahgozin.appointment.application.model.CancelAppointmentRequest;
 import com.rahgozin.appointment.application.model.LoginRequest;
+import com.rahgozin.appointment.application.model.ReserveAppointmentRequest;
 import com.rahgozin.appointment.application.repository.AppointmentRepository;
 import com.rahgozin.appointment.application.repository.DoctorRepository;
 import com.rahgozin.appointment.application.service.AppointmentService;
@@ -37,9 +39,15 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -48,7 +56,14 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.net.http.HttpRequest;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -56,80 +71,164 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 @SpringBootTest
 @RunWith(SpringJUnit4ClassRunner.class)
 @WithMockUser(username = "rezaei", password = "12345")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+
 class AppointmentApplicationTests {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
 
-	@Mock
-	private AppointmentService appointmentService;
-
-	@MockBean
-	private DoctorRepository doctorRepository;
-	@MockBean
-	private JwtAuthenticationFilter filter;
-
-	@MockBean
-	private DoctorService doctorService;
-
-	@MockBean
-	private PasswordEncoder passwordEncoder;
+    String token;
+    String patientToken;
+    final Object object = new Object();
 
 
-//	@BeforeEach
-//	void test() throws Exception {
-////		DoctorEntity doctor = new DoctorEntity();
-////		doctor.setUsername("rezaei");
-////		doctor.setPassword(passwordEncoder.encode("12345"));
-////		doctor.setName("doc");
-////		doctor.setAddress("doc");
-////		try{
-////			doctorRepository.save(doctor);
-////			System.out.println("Doctor saved");
-////
-////		}catch (Exception e){
-////			e.fillInStackTrace();
-////		}
-//		ObjectMapper objectMapper = new ObjectMapper();
-//		LoginRequest request = new LoginRequest();
-//		request.setUsername("zarei");
-//		request.setPassword("12345");
-//		MvcResult resultActions = mockMvc.perform(post("/v1/auth/login").content(objectMapper.writeValueAsString(request)).contentType(MediaType.APPLICATION_JSON)).andReturn();
-//		String token = String.valueOf(resultActions.getClass().getField("jwtToken"));
-//		System.out.println(token);
-//	}
 
-	@Test
-	@WithMockUser(username = "zarei", password = "12345")
-	void contextLoads() throws Exception {
-		try{
-			Long doctorId = 1L;
-			DoctorEntity mockDoctor = new DoctorEntity();
-			Mockito.when(doctorRepository.findById(doctorId)).thenReturn(Optional.of(mockDoctor));
-			AddAppointmentRequest request = new AddAppointmentRequest("07:00","08:00",20240702);
-			ObjectMapper objectMapper = new ObjectMapper();
-			ErrorsModel errorsModel = new ErrorsModel();
-			errorsModel.setMessage(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME.name());
-			errorsModel.setCode(String.valueOf(400));
-			mockMvc.perform(post("/doctor/addAppointment").
-							content(objectMapper.writeValueAsString(request)).
-							contentType(MediaType.APPLICATION_JSON).
-							accept("application/json").
-							header("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ6YXJlaSIsImlhdCI6MTcxOTk1MDUyNCwiZXhwIjoxNzE5OTUxOTY0fQ.wt5m-T2iPTV3nrvzzr7O8iC7atiAX5CCUptslg84-IU")).
-					andExpect(status().is4xxClientError()).
-					andExpect(content().string(objectMapper.writeValueAsString(errorsModel)));}catch (Exception e){
+    @BeforeEach
+    void test2() throws Exception {
+        //patient login
 
-			e.printStackTrace();
-			System.out.println(e.getMessage());
-			throw e
-					;}
+        ObjectMapper objectMapper = new ObjectMapper();
+        LoginRequest request2 = new LoginRequest();
+        request2.setUsername("mohammadi");
+        request2.setPassword("12345");
+        MvcResult resultActions2 = mockMvc.
+                perform(post("/v1/auth/login").
+                        content(objectMapper.writeValueAsString(request2)).
+                        contentType(MediaType.APPLICATION_JSON)).
+                andExpect(status().isOk()).
+                andReturn();
+        String responseBody2 = resultActions2.getResponse().getContentAsString();
+        Map<String, String> responseMap2 = objectMapper.readValue(responseBody2, Map.class);
+        this.patientToken = responseMap2.get("jwtToken");
+    }
+    @BeforeEach
+    void test() throws Exception {
 
-//		appointmentService.addAppointments(mockDoctor.getUsername(), request);
 
-	}
+        //doctor login
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        LoginRequest request = new LoginRequest();
+        request.setUsername("rezaei");
+        request.setPassword("12345");
+        MvcResult resultActions = mockMvc.
+                perform(post("/v1/auth/login").
+                        content(objectMapper.writeValueAsString(request)).
+                        contentType(MediaType.APPLICATION_JSON)).
+                andExpect(status().isOk()).
+                andReturn();
+        String responseBody = resultActions.getResponse().getContentAsString();
+        Map<String, String> responseMap = objectMapper.readValue(responseBody, Map.class);
+        this.token = responseMap.get("jwtToken");
+
+    }
+
+    @Test
+    void addAppointmentTest() throws Exception {
+        try {
+            AddAppointmentRequest request = new AddAppointmentRequest("07:00", "06:00", 20240702);
+            ObjectMapper objectMapper = new ObjectMapper();
+            ErrorsModel errorsModel = new ErrorsModel();
+            errorsModel.setMessage(ExceptionEnum.START_TIME_SOONER_THAN_END_TIME.name());
+            errorsModel.setCode(String.valueOf(400));
+            mockMvc.perform(post("/doctor/addAppointment").
+                            content(objectMapper.writeValueAsString(request)).
+                            contentType(MediaType.APPLICATION_JSON).
+                            accept("application/json").
+                            header("Authorization", "Bearer " + token)).
+                    andExpect(status().is4xxClientError()).
+                    andExpect(content().string(objectMapper.writeValueAsString(errorsModel)));
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            throw e
+                    ;
+        }
+    }
+
+    @Test
+    void contextLoads() throws Exception {
+        try {
+            String result = mockMvc.perform(get("/doctor/appointments").
+                            contentType(MediaType.APPLICATION_JSON).
+                            accept("application/json").
+                            header("Authorization", "Bearer " + token)).
+                    andExpect(status().is2xxSuccessful()).andReturn().getResponse().getContentAsString();
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            throw e
+                    ;
+        }
+    }
+
+    @Test
+    void cc() throws Exception {
+        int threadCount =2;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+
+            executorService.submit(() -> {
+                try {
+                    checkConcurrency();
+                    latch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+        executorService.submit(() -> {
+            try {
+                checkConcurrencyPatient();
+                latch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+            latch.countDown();
+            latch.countDown();
+
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.MINUTES);
+    }
+
+    void checkConcurrency() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            List<Long> ids = new ArrayList<>();
+            ids.add(553L);
+            CancelAppointmentRequest request = new CancelAppointmentRequest(ids);
+                String result = mockMvc.perform(post("/doctor/cancelAppointment").content(objectMapper.writeValueAsString(request)).header("Authorization","Bearer " + token).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse().getContentAsString();
+
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+
+
+    void checkConcurrencyPatient() throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            ReserveAppointmentRequest reserveAppointmentRequest = new ReserveAppointmentRequest();
+            reserveAppointmentRequest.setAppointmentId(553L);
+
+            String result2 = mockMvc.perform(post("/patient/reserve").content(objectMapper.writeValueAsString(reserveAppointmentRequest)).header("Authorization","Bearer " + patientToken).contentType(MediaType.APPLICATION_JSON)).andReturn().getResponse().getContentAsString();
+
+        } catch (Exception e) {
+            throw e;
+        }
+    }
 
 }

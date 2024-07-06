@@ -12,4 +12,6 @@ public interface AppointmentService {
 
     List<Appointment> addAppointments(String username, LocalTime startTime, LocalTime endTime, Integer day);
     List<DoctorAppointmentModel> getAppointments(String username, GetAppointmentsRequest request);
+
+    List<Appointment> cancelAppointments(List<Long> ids, String username);
 }

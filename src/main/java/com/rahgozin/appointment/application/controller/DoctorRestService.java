@@ -53,6 +53,14 @@ public class DoctorRestService {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/cancelAppointment", method = RequestMethod.POST)
+    public ResponseEntity<List<Appointment>> cancel(@RequestBody CancelAppointmentRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return new ResponseEntity<>(appointmentService.cancelAppointments(request.getAppointmentIds(), username), HttpStatus.OK);
+    }
+
+
+
     @RequestMapping(value = "/appointments", method = RequestMethod.GET)
     public ResponseEntity<List<DoctorAppointmentModel>> getAppointments(GetAppointmentsRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();

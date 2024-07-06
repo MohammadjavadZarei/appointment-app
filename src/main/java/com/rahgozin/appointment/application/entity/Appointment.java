@@ -15,7 +15,7 @@ import java.util.Date;
 @Builder
 @Setter
 @Getter
-@Table(name = "APPOINTMENT", uniqueConstraints = {@UniqueConstraint(name = "doctor_date_start_end_uq", columnNames = {"start_time", "end_time","date","doctor_id"})})
+@Table(name = "APPOINTMENT", uniqueConstraints = {@UniqueConstraint(name = "doctor_date_start_end_uq", columnNames = {"start_time", "end_time","action_date","doctor_id"})})
 @ToString
 public class Appointment {
 

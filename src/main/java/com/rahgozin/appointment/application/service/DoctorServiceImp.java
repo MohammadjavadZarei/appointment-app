@@ -51,9 +51,7 @@ public class DoctorServiceImp implements DoctorService {
     @Override
     public List<Appointment> getDoctorAppointments(GetDoctorAppointmentsRequest request) {
         Optional<DoctorEntity> doctor = doctorRepository.findById(request.getDoctorId());
-        if (doctor.isPresent())
-            return appointmentRepository.findAllByActionDateAndDoctorAndStatus(request.getDay(), doctor.get(), AppointmentStatus.EMPTY);
-        else return null;
+        return doctor.map(doctorEntity -> appointmentRepository.findAllByActionDateAndDoctorAndStatus(request.getDay(), doctorEntity, AppointmentStatus.EMPTY)).orElse(null);
     }
 
 

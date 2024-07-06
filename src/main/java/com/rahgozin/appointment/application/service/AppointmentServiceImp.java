@@ -1,22 +1,24 @@
 package com.rahgozin.appointment.application.service;
 
-import com.rahgozin.appointment.application.Dateutil;
+import com.rahgozin.appointment.application.util.Dateutil;
 import com.rahgozin.appointment.application.entity.Appointment;
 import com.rahgozin.appointment.application.entity.AppointmentStatus;
 import com.rahgozin.appointment.application.entity.DoctorEntity;
 import com.rahgozin.appointment.application.entity.User;
 import com.rahgozin.appointment.application.exception.AppointmentException;
 import com.rahgozin.appointment.application.exception.ExceptionEnum;
-import com.rahgozin.appointment.application.model.AddAppointmentRequest;
 import com.rahgozin.appointment.application.model.DoctorAppointmentModel;
 import com.rahgozin.appointment.application.model.GetAppointmentsRequest;
 import com.rahgozin.appointment.application.repository.AppointmentRepository;
+import com.rahgozin.appointment.application.repository.DoctorRepository;
 import com.rahgozin.appointment.application.repository.UserRepository;
 import lombok.AllArgsConstructor;
+import org.hibernate.StaleObjectStateException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -28,12 +30,19 @@ public class AppointmentServiceImp implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
 
+    private final DoctorRepository doctorRepository;
+
     @Override
     public List<Appointment> addAppointments(String username, LocalTime startTime, LocalTime endTime, Integer day) {
         int slotDurationInMinutes = 30;
         Optional<User> doctor = userRepository.findByUsername(username);
         List<Appointment> appointments =  generateAppointmentSlots((DoctorEntity) doctor.get(), startTime, endTime, slotDurationInMinutes, day);
-        appointmentRepository.saveAll(appointments);
+        try {
+            appointmentRepository.saveAll(appointments);
+
+        }catch (Exception e){
+            throw e;
+        }
         return appointments;
     }
 
@@ -61,6 +70,29 @@ public class AppointmentServiceImp implements AppointmentService {
         return appointmentModels;
 
 
+    }
+
+    @Override
+    @Transactional
+    public List<Appointment> cancelAppointments(List<Long> ids, String username) {
+        List<Appointment> appointments = null;
+        try {
+            appointments = appointmentRepository.findAllById(ids);
+            DoctorEntity doctor = doctorRepository.findByUsername(username);
+            for(Appointment appointment : appointments){
+                if (!doctor.getAppointments().contains(appointment))
+                    throw new AppointmentException(ExceptionEnum.APPOINTMENT_DOES_NOT_BELONG_TO_DOCTOR);
+                if (appointment.getStatus().equals(AppointmentStatus.RESERVED))
+                    throw new AppointmentException(ExceptionEnum.APPOINTMENT_RESERVED);
+                appointment.setStatus(AppointmentStatus.CANCELED);
+                appointmentRepository.save(appointment);
+            }
+        }catch (RuntimeException e){
+            if (e instanceof ObjectOptimisticLockingFailureException)
+                throw new AppointmentException(ExceptionEnum.APPOINTMENT_ALREADY_RESERVED_BY_PATIENT);
+        }
+
+        return appointments;
     }
 
 

@@ -1,4 +1,4 @@
-package com.rahgozin.appointment.application;
+package com.rahgozin.appointment.application.util;
 
 import lombok.experimental.UtilityClass;
 

@@ -4,6 +4,8 @@ import com.rahgozin.appointment.application.entity.Appointment;
 import com.rahgozin.appointment.application.entity.AppointmentStatus;
 import com.rahgozin.appointment.application.entity.Patient;
 import com.rahgozin.appointment.application.entity.Role;
+import com.rahgozin.appointment.application.exception.AppointmentException;
+import com.rahgozin.appointment.application.exception.ExceptionEnum;
 import com.rahgozin.appointment.application.model.PatientAppointmentModel;
 import com.rahgozin.appointment.application.model.PatientRegisterRequest;
 import com.rahgozin.appointment.application.model.ReserveAppointmentRequest;
@@ -11,9 +13,12 @@ import com.rahgozin.appointment.application.model.ReservedAppointmentFactor;
 import com.rahgozin.appointment.application.repository.AppointmentRepository;
 import com.rahgozin.appointment.application.repository.PatientRepository;
 import lombok.AllArgsConstructor;
+import org.hibernate.StaleObjectStateException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,17 +46,30 @@ public class PatientServiceImpl implements PatientService{
     }
 
     @Override
+    @Transactional
     public ReservedAppointmentFactor reserveAppointment(ReserveAppointmentRequest request, String username) {
-        Appointment appointment = appointmentRepository.findByIdAndStatus(request.getAppointmentId(), AppointmentStatus.EMPTY);
-        Patient patient = patientRepository.findByUsername(username);
-        appointment.setPatient(patient);
-        appointment.setStatus(AppointmentStatus.RESERVED);
+        Optional<Appointment> appointmentEntity;
+        Appointment appointment = null;
         try {
-            appointmentRepository.save(appointment);
-
+            appointmentEntity = appointmentRepository.findById(request.getAppointmentId());
+           appointment = appointmentEntity.flatMap(appointment1 -> appointmentEntity).orElseThrow();
+            Patient patient = patientRepository.findByUsername(username);
+            if (patient.getMobileNumber() == null)
+                throw new AppointmentException(ExceptionEnum.ENTER_MOB_FIRST);
+            if (appointment.getStatus().equals(AppointmentStatus.CANCELED))
+                throw new AppointmentException(ExceptionEnum.APPOINTMENT_CANCELED);
+            if (appointment.getStatus().equals(AppointmentStatus.RESERVED))
+                throw new AppointmentException(ExceptionEnum.APPOINTMENT_RESERVED);
+            appointment.setPatient(patient);
+            appointment.setStatus(AppointmentStatus.RESERVED);
+                appointmentRepository.save(appointment);
         }catch (Exception e){
+            if (e instanceof ObjectOptimisticLockingFailureException){
+                throw new AppointmentException(ExceptionEnum.APPOINTMENT_ALREADY_CANCELED_BY_DOCTOR);
+            }
             e.printStackTrace();
         }
+
         return ReservedAppointmentFactor.builder().
                 address(appointment.getDoctor().getAddress()).
                 doctorName(appointment.getDoctor().getName()).
